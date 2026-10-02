@@ -48,7 +48,7 @@
                     THIÊN NGƯU BAY BIỂN
                 </h2>
                 <p class="text-xs sm:text-sm text-gray-200 max-w-xs mb-6 leading-relaxed">
-                    Chạm màn hình hoặc ấn <b>SPACE</b> để Thiên Ngưu vỗ cánh bay! Luồn lách qua các khe đảo để tích điểm cắm cờ.
+                    Chạm màn hình hoặc ấn <b>SPACE</b> để Thiên Ngưu vỗ cánh bay! Luồn lách qua các đảo để cắm cờ chủ quyền.
                 </p>
                 <button id="startBtn" class="px-8 py-3.5 bg-gradient-to-r from-red-600 to-amber-500 text-white font-black text-base rounded-full shadow-lg border-2 border-yellow-300">
                     BẮT ĐẦU BAY (TAP / SPACE)
@@ -59,7 +59,7 @@
             <div id="gameOverScreen" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center z-30">
                 <div class="w-full max-w-sm bg-slate-900 border-2 border-red-500 rounded-2xl p-5 shadow-2xl">
                     <h2 class="text-xl font-black text-red-400 mb-2 uppercase">
-                        ĐÃ CẢM NẮNG / ĐỤNG ĐẢO!
+                        ĐỤNG ĐẢO HOẶC RỚT BIỂN!
                     </h2>
                     <p class="text-xs text-amber-200 italic mb-4">Căn nhịp vỗ cánh chuẩn xác hơn nhé!</p>
                     <div class="bg-slate-800 p-3 rounded-xl mb-4 border border-amber-500/30">
@@ -74,7 +74,7 @@
         </div>
 
         <footer class="mt-3 text-xs text-cyan-300/80">
-            👉 Nhấn liên tục để giữ Thiên Ngưu không rơi xuống biển hoặc va vào bệ đá!
+            👉 Nhấn liên tục để giữ Thiên Ngưu bay qua các đảo!
         </footer>
     </div>
 
@@ -87,10 +87,19 @@
         canvas.width = V_WIDTH;
         canvas.height = V_HEIGHT;
 
-        const ISLAND_NAMES = [
-            "Hoàng Sa", "Phú Lâm", "Song Tử Tây", "Nam Yết", 
-            "Sơn Ca", "Sinh Tồn", "Chữ Thập", "Subi", 
-            "Vành Khăn", "Trường Sa Lớn", "An Bang", "Thuyền Chài"
+        const ISLAND_DATA = [
+            { name: "Đảo Hoàng Sa", group: "Q.đáo Hoàng Sa" },
+            { name: "Đảo Phú Lâm", group: "Q.đáo Hoàng Sa" },
+            { name: "Đảo Song Tử Tây", group: "Q.đáo Trường Sa" },
+            { name: "Đảo Nam Yết", group: "Q.đáo Trường Sa" },
+            { name: "Đảo Sơn Ca", group: "Q.đáo Trường Sa" },
+            { name: "Đảo Sinh Tồn", group: "Q.đáo Trường Sa" },
+            { name: "Đá Chữ Thập", group: "Q.đáo Trường Sa" },
+            { name: "Đá Subi", group: "Q.đáo Trường Sa" },
+            { name: "Đá Vành Khăn", group: "Q.đáo Trường Sa" },
+            { name: "Đảo Trường Sa Lớn", group: "Q.đáo Trường Sa" },
+            { name: "Đảo An Bang", group: "Q.đáo Trường Sa" },
+            { name: "Đá Thuyền Chài", group: "Q.đáo Trường Sa" }
         ];
 
         let gameState = 'START';
@@ -98,7 +107,55 @@
         let pipes = [];
         let frameCount = 0;
 
-        // Đối tượng Thiên Ngưu Flappy
+        // TẠO HÌNH VECTOR CHUẨN NGUYÊN BẢN THIÊN NGƯU TỪ ẢNH MẪU
+        const thienNguuSVG = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+            <g>
+                <!-- Mây Vàng Cuộn Chân -->
+                <path d="M 120 420 C 150 380, 200 370, 240 390 C 270 340, 340 330, 390 370 C 420 380, 440 410, 420 430 C 350 450, 200 450, 120 420 Z" fill="#d97706" stroke="#fef08a" stroke-width="3"/>
+                <path d="M 160 400 C 190 360, 250 360, 280 390 C 310 350, 360 350, 390 390 C 330 420, 210 420, 160 400 Z" fill="#f59e0b"/>
+                
+                <!-- Chân Sau & Thân Trâu -->
+                <path d="M 110 330 Q 80 280 100 210 Q 150 170 230 180 L 290 280 Q 250 370 190 340 Z" fill="#0f172a"/>
+                <path d="M 110 330 C 120 360, 140 400, 150 420 L 170 410 C 160 380, 140 350, 130 320 Z" fill="#1e293b"/>
+                <path d="M 170 330 C 180 360, 200 400, 210 420 L 230 410 C 220 380, 200 350, 190 320 Z" fill="#0f172a"/>
+                
+                <!-- Chân Trước Dũng Mãnh -->
+                <path d="M 280 270 C 310 300, 350 330, 380 340 L 390 320 C 360 300, 330 270, 300 240 Z" fill="#1e293b"/>
+                <path d="M 320 230 C 350 250, 410 270, 430 260 L 430 240 C 400 240, 360 220, 330 200 Z" fill="#0f172a"/>
+
+                <!-- Đuôi Trâu NGHỆ THUẬT -->
+                <path d="M 100 210 C 70 200, 50 230, 70 260 C 80 280, 60 300, 50 280 C 40 250, 70 180, 110 190 Z" fill="#0f172a"/>
+
+                <!-- ĐÔI CÁNH THẦN VÀNG KIM (2 LỚP CHUẨN ẢNH) -->
+                <!-- Lớp cánh dưới -->
+                <path d="M 170 180 C 130 110, 180 40, 260 50 C 220 100, 200 140, 190 180 Z" fill="#d97706" stroke="#fef08a" stroke-width="2"/>
+                <path d="M 190 170 C 150 110, 210 50, 290 60 C 250 110, 230 140, 210 170 Z" fill="#b45309"/>
+                <!-- Lớp cánh chính (Vàng rực rỡ) -->
+                <path d="M 180 180 C 110 80, 190 20, 300 30 C 310 35, 270 70, 260 90 C 280 90, 320 50, 340 60 C 310 90, 280 110, 280 120 C 300 110, 350 80, 370 90 C 330 120, 270 150, 230 180 Z" fill="#f59e0b" stroke="#fde047" stroke-width="3"/>
+                <!-- Lông vũ cánh chi tiết -->
+                <path d="M 200 160 Q 230 100 280 80 M 210 170 Q 250 120 310 100 M 220 175 Q 270 130 340 120" stroke="#fef08a" stroke-width="2" fill="none"/>
+
+                <!-- Đầu, Sừng & Tai -->
+                <path d="M 250 170 C 280 140, 320 110, 360 110 C 390 110, 410 130, 400 150 C 370 170, 310 200, 270 190 Z" fill="#0f172a"/>
+                <!-- Sừng cong uốn lượn -->
+                <path d="M 330 120 C 320 80, 280 60, 240 65 C 270 75, 300 85, 320 110 Z" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+                <path d="M 340 115 C 340 70, 300 40, 250 45 C 290 55, 320 70, 335 105 Z" fill="#1e293b" stroke="#fde047" stroke-width="2"/>
+
+                <!-- Mắt Lửa Đỏ Vàng -->
+                <ellipse cx="370" cy="135" rx="8" ry="5" fill="#ef4444"/>
+                <ellipse cx="371" cy="135" rx="4" ry="2" fill="#fde047"/>
+
+                <!-- HOA VĂN TRỐNG ĐỒNG Ở VAI (BIỂU TƯỢNG HOÀNG GIA) -->
+                <circle cx="280" cy="190" r="22" fill="#d97706" stroke="#fde047" stroke-width="3"/>
+                <circle cx="280" cy="190" r="15" fill="none" stroke="#fde047" stroke-width="2" stroke-dasharray="4,3"/>
+                <circle cx="280" cy="190" r="6" fill="#fde047"/>
+            </g>
+        </svg>`;
+
+        const buffaloImg = new Image();
+        buffaloImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(thienNguuSVG);
+
         class Buffalo {
             constructor() {
                 this.reset();
@@ -108,10 +165,10 @@
                 this.x = 100;
                 this.y = V_HEIGHT / 2;
                 this.velocity = 0;
-                this.gravity = 0.42;  // Trọng lực rơi
-                this.jumpPower = -7.5; // Lực bay vọt lên
-                this.width = 40;
-                this.height = 32;
+                this.gravity = 0.42;  
+                this.jumpPower = -7.5; 
+                this.width = 65;  // Kích thước chuẩn đẹp mắt
+                this.height = 65;
                 this.rotation = 0;
             }
 
@@ -123,10 +180,8 @@
                 this.velocity += this.gravity;
                 this.y += this.velocity;
 
-                // Xoay đầu theo hướng bay
                 this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 6, this.velocity * 0.08));
 
-                // Chạm đáy biển hoặc trần
                 if (this.y + this.height / 2 >= V_HEIGHT - 40 || this.y - this.height / 2 <= 0) {
                     endGame();
                 }
@@ -137,115 +192,92 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.rotation);
 
-                // Mây vàng cuộn ở chân trâu
-                ctx.fillStyle = '#d97706';
-                ctx.beginPath();
-                ctx.arc(-10, 12, 8, 0, Math.PI * 2);
-                ctx.arc(5, 14, 6, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 1. Thân trâu xanh đậm (#1e3a8a)
-                ctx.fillStyle = '#1e3a8a';
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 20, 14, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 2. Hoa văn Trống Đồng màu vàng ở vai
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.arc(-4, -2, 6, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.fillStyle = '#facc15';
-                ctx.beginPath();
-                ctx.arc(-4, -2, 2, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 3. Đôi cánh thần màu vàng kim (2 lớp)
-                ctx.fillStyle = '#f59e0b';
-                ctx.beginPath();
-                ctx.moveTo(-6, -6);
-                ctx.quadraticCurveTo(-18, -30, 2, -18);
-                ctx.quadraticCurveTo(-2, -8, -6, -6);
-                ctx.fill();
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                // 4. Đầu & Sừng cong huy hoàng
-                ctx.fillStyle = '#1e3a8a';
-                ctx.beginPath();
-                ctx.arc(14, -6, 10, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Sừng trâu vàng
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(12, -12);
-                ctx.quadraticCurveTo(8, -26, 22, -22);
-                ctx.stroke();
-
-                // Mắt đỏ
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath();
-                ctx.arc(18, -8, 2, 0, Math.PI * 2);
-                ctx.fill();
+                // Vẽ Thiên Ngưu từ ảnh SVG vector chuẩn nét
+                ctx.drawImage(buffaloImg, -this.width / 2, -this.height / 2, this.width, this.height);
 
                 ctx.restore();
             }
         }
 
-        // Cột chướng ngại vật (Mô phỏng đảo/bãi đá)
         class Pipe {
             constructor(x) {
                 this.x = x;
-                this.width = 65;
-                this.gap = 150; // Khoảng trống chui qua
-                this.topHeight = Math.floor(Math.random() * (V_HEIGHT - this.gap - 160)) + 60;
+                this.width = 110; 
+                this.gap = 160; 
+                this.topHeight = Math.floor(Math.random() * (V_HEIGHT - this.gap - 220)) + 50;
                 this.bottomY = this.topHeight + this.gap;
                 this.passed = false;
-                this.name = ISLAND_NAMES[Math.floor(Math.random() * ISLAND_NAMES.length)];
+                
+                const randomIsland = ISLAND_DATA[Math.floor(Math.random() * ISLAND_DATA.length)];
+                this.name = randomIsland.name;
+                this.group = randomIsland.group;
             }
 
             update() {
-                this.x -= 2.5; // Tốc độ cuộn màn hình
+                this.x -= 2.5; 
             }
 
             draw() {
                 // Cột trên
-                ctx.fillStyle = '#0f766e';
-                ctx.fillRect(this.x, 0, this.width, this.topHeight);
-                ctx.fillStyle = '#14b8a6';
-                ctx.fillRect(this.x - 3, this.topHeight - 15, this.width + 6, 15);
+                ctx.fillStyle = '#0369a1';
+                ctx.fillRect(this.x + 15, 0, this.width - 30, this.topHeight);
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(this.x + 10, this.topHeight - 15, this.width - 20, 15);
 
-                // Cột dưới
-                ctx.fillStyle = '#0f766e';
-                ctx.fillRect(this.x, this.bottomY, this.width, V_HEIGHT - this.bottomY);
-                ctx.fillStyle = '#14b8a6';
-                ctx.fillRect(this.x - 3, this.bottomY, this.width + 6, 15);
+                // Bệ đảo dưới
+                const islandX = this.x;
+                const islandY = this.bottomY;
+                const islandW = this.width;
 
-                // Tên Đảo
+                ctx.fillStyle = '#0f766e';
+                ctx.beginPath();
+                ctx.moveTo(islandX - 10, V_HEIGHT);
+                ctx.lineTo(islandX, islandY + 20);
+                ctx.lineTo(islandX + 15, islandY);
+                ctx.lineTo(islandX + islandW - 15, islandY);
+                ctx.lineTo(islandX + islandW, islandY + 20);
+                ctx.lineTo(islandX + islandW + 10, V_HEIGHT);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.ellipse(islandX + islandW / 2, islandY + 4, islandW / 2 - 5, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tên đảo & Thuộc Việt Nam
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 10px Montserrat, sans-serif';
+                ctx.font = 'bold 11px Montserrat, sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(this.name, this.x + this.width / 2, this.bottomY + 32);
+                ctx.fillText(this.name, islandX + islandW / 2, islandY + 32);
 
-                // Cắm cờ Việt Nam ở đỉnh cột dưới
-                const fx = this.x + this.width / 2;
-                const fy = this.bottomY;
-                ctx.strokeStyle = '#cbd5e1';
-                ctx.lineWidth = 2;
+                ctx.fillStyle = '#fde047';
+                ctx.font = 'bold 9px Montserrat, sans-serif';
+                ctx.fillText(this.group, islandX + islandW / 2, islandY + 46);
+
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(islandX + 10, islandY + 54, islandW - 20, 16);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 9px Montserrat, sans-serif';
+                ctx.fillText('THUỘC VIỆT NAM', islandX + islandW / 2, islandY + 66);
+
+                // Cờ Việt Nam
+                const fx = islandX + islandW / 2;
+                const fy = islandY - 6;
+
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 3;
                 ctx.beginPath();
                 ctx.moveTo(fx, fy);
-                ctx.lineTo(fx, fy - 25);
+                ctx.lineTo(fx, fy - 32);
                 ctx.stroke();
 
-                ctx.fillStyle = '#dc2626';
-                ctx.fillRect(fx, fy - 25, 16, 10);
-                ctx.fillStyle = '#facc15';
-                ctx.font = '8px sans-serif';
-                ctx.fillText('★', fx + 8, fy - 17);
+                ctx.fillStyle = '#da251d';
+                ctx.fillRect(fx, fy - 32, 22, 14);
+
+                ctx.fillStyle = '#ffff00';
+                ctx.font = '10px sans-serif';
+                ctx.fillText('★', fx + 11, fy - 21);
             }
         }
 
@@ -258,61 +290,51 @@
         }
 
         function gameLoop() {
-            // Nền bầu trời biển
             ctx.fillStyle = '#075985';
             ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
 
-            // Nước biển bên dưới
             ctx.fillStyle = '#0284c7';
-            ctx.fillRect(0, V_HEIGHT - 40, V_WIDTH, 40);
+            ctx.fillRect(0, V_HEIGHT - 30, V_WIDTH, 30);
 
             if (gameState === 'PLAYING') {
                 frameCount++;
 
-                // Tạo cột mới
-                if (frameCount % 90 === 0) {
+                if (frameCount % 100 === 0) {
                     pipes.push(new Pipe(V_WIDTH));
                 }
 
-                // Cập nhật trâu
                 buffalo.update();
 
-                // Cập nhật cột
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].update();
 
-                    // Va chạm
                     if (
-                        buffalo.x + buffalo.width / 2 > pipes[i].x &&
-                        buffalo.x - buffalo.width / 2 < pipes[i].x + pipes[i].width
+                        buffalo.x + buffalo.width / 3 > pipes[i].x &&
+                        buffalo.x - buffalo.width / 3 < pipes[i].x + pipes[i].width
                     ) {
                         if (
-                            buffalo.y - buffalo.height / 2 < pipes[i].topHeight ||
-                            buffalo.y + buffalo.height / 2 > pipes[i].bottomY
+                            buffalo.y - buffalo.height / 3 < pipes[i].topHeight ||
+                            buffalo.y + buffalo.height / 3 > pipes[i].bottomY
                         ) {
                             endGame();
                         }
                     }
 
-                    // Tích điểm
                     if (!pipes[i].passed && pipes[i].x + pipes[i].width < buffalo.x) {
                         pipes[i].passed = true;
                         score++;
                     }
 
-                    // Xóa cột thừa
-                    if (pipes[i].x + pipes[i].width < 0) {
+                    if (pipes[i].x + pipes[i].width < -20) {
                         pipes.splice(i, 1);
                     }
                 }
 
-                // Vẽ cột & trâu
                 pipes.forEach(pipe => pipe.draw());
                 buffalo.draw();
 
-                // Điểm số trên màn hình
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 28px Montserrat, sans-serif';
+                ctx.font = 'bold 32px Montserrat, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText(score, V_WIDTH / 2, 50);
 
